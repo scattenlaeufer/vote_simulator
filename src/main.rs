@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world!");
+    vote_simulator::run();
 }
