@@ -30,7 +30,7 @@ struct Vote<'a> {
     next_vote: Option<&'a Self>,
 }
 
-pub fn run(voters: usize) {
+pub fn run(voters: usize, positions: usize, constituencies: usize) {
     // Those candidates stand for election
     let party_a = Candidate::Party("A".into());
     let party_b = Candidate::Party("B".into());
@@ -98,66 +98,74 @@ pub fn run(voters: usize) {
     let mut rng = thread_rng();
 
     // In this Vector the actual votes will be collected
-    let mut votes = Vec::new();
+    let mut election_results = Vec::new();
+
+    let voters_per_constituency = voters / constituencies;
 
     // Do the actual voting
-    for _ in 0..voters {
-        // Select the primary vote
-        let primary_choice = choices_a_vec
-            .iter()
-            .map(|c| (c, c.probability))
-            .collect::<Vec<_>>()
-            .choose_weighted(&mut rng, |i| i.1)
-            .unwrap()
-            .0;
-        match primary_choice.candidate {
-            &Candidate::Nothing => (),
-            _ => {
-                let mut ballot = Vec::new();
-                let mut choices = primary_choice.preferences.clone();
-                ballot.push(primary_choice.candidate);
-                // Select subsequent votes
-                loop {
-                    // Make a choice
-                    match &choices
-                        .iter()
-                        .map(|c| c)
-                        .collect::<Vec<_>>()
-                        .choose_weighted(&mut rng, |i| i.1)
-                        .unwrap()
-                        .0
-                    {
-                        // If nothing was chosen, break the loop
-                        &Candidate::Nothing => break,
-                        // Else process the new choice
-                        c => {
-                            // Add the new choices to the ballot
-                            ballot.push(c);
-                            // Remove the current choice from the set of further possibilities
-                            choices = choices
-                                .iter()
-                                .filter(|o| &o.0 != c)
-                                .map(|o| (o.0.clone(), *o.1))
-                                .collect::<HashMap<_, _>>();
-                        }
-                    };
+    for _ in 0..constituencies {
+        let mut votes = Vec::new();
+        for _ in 0..voters_per_constituency {
+            // Select the primary vote
+            let primary_choice = choices_a_vec
+                .iter()
+                .map(|c| (c, c.probability))
+                .collect::<Vec<_>>()
+                .choose_weighted(&mut rng, |i| i.1)
+                .unwrap()
+                .0;
+            match primary_choice.candidate {
+                &Candidate::Nothing => (),
+                _ => {
+                    let mut ballot = Vec::new();
+                    let mut choices = primary_choice.preferences.clone();
+                    ballot.push(primary_choice.candidate);
+                    // Select subsequent votes
+                    loop {
+                        // Make a choice
+                        match &choices
+                            .iter()
+                            .map(|c| c)
+                            .collect::<Vec<_>>()
+                            .choose_weighted(&mut rng, |i| i.1)
+                            .unwrap()
+                            .0
+                        {
+                            // If nothing was chosen, break the loop
+                            &Candidate::Nothing => break,
+                            // Else process the new choice
+                            c => {
+                                // Add the new choices to the ballot
+                                ballot.push(c);
+                                // Remove the current choice from the set of further possibilities
+                                choices = choices
+                                    .iter()
+                                    .filter(|o| &o.0 != c)
+                                    .map(|o| (o.0.clone(), *o.1))
+                                    .collect::<HashMap<_, _>>();
+                            }
+                        };
+                    }
+                    votes.push(ballot);
                 }
-                votes.push(ballot);
             }
         }
+        election_results.push(votes);
     }
 
-    let primary_votes = votes.iter().map(|i| i[0]).collect::<Vec<_>>();
+    for votes in election_results.iter() {
+        let primary_votes = votes.iter().map(|i| i[0]).collect::<Vec<_>>();
 
-    let mut vote_count = HashMap::new();
-    for v in primary_votes {
-        match vote_count.insert(v, 1) {
-            None => (),
-            Some(c) => {
-                vote_count.insert(v, c + 1);
-                ()
-            }
-        };
+        let mut vote_count = HashMap::new();
+        for v in primary_votes {
+            match vote_count.insert(v, 1) {
+                None => (),
+                Some(c) => {
+                    vote_count.insert(v, c + 1);
+                    ()
+                }
+            };
+        }
+        println!("{:#?}", vote_count);
     }
-    println!("{:#?}", vote_count);
 }

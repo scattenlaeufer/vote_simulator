@@ -22,11 +22,41 @@ fn main() {
                 .validator(usize_validator)
                 .multiple(false),
         )
+        .arg(
+            Arg::with_name("positions")
+                .short("p")
+                .long("positions")
+                .help("Number of postitons to be elected per constituency")
+                .takes_value(true)
+                .default_value("1")
+                .validator(usize_validator)
+                .multiple(false),
+        )
+        .arg(
+            Arg::with_name("constituencies")
+                .short("c")
+                .long("constituencies")
+                .help("Number of constituencies")
+                .takes_value(true)
+                .default_value("1")
+                .validator(usize_validator)
+                .multiple(false),
+        )
         .get_matches();
-    println!("{:#?}", &matches);
+
     vote_simulator::run(
         matches
             .value_of("voters")
+            .unwrap()
+            .parse::<usize>()
+            .unwrap(),
+        matches
+            .value_of("positions")
+            .unwrap()
+            .parse::<usize>()
+            .unwrap(),
+        matches
+            .value_of("constituencies")
             .unwrap()
             .parse::<usize>()
             .unwrap(),
