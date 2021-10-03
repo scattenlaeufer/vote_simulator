@@ -101,7 +101,7 @@ pub fn run() {
     let mut votes = Vec::new();
 
     // Do the actual voting
-    for _ in 0..1000000 {
+    for _ in 0..1_000_000 {
         // Select the primary vote
         let primary_choice = choices_a_vec
             .iter()
@@ -114,7 +114,34 @@ pub fn run() {
             &Candidate::Nothing => (),
             _ => {
                 let mut ballot = Vec::new();
+                let mut choices = primary_choice.preferences.clone();
                 ballot.push(primary_choice.candidate);
+                // Select subsequent votes
+                loop {
+                    // Make a choice
+                    match &choices
+                        .iter()
+                        .map(|c| c)
+                        .collect::<Vec<_>>()
+                        .choose_weighted(&mut rng, |i| i.1)
+                        .unwrap()
+                        .0
+                    {
+                        // If nothing was chosen, break the loop
+                        &Candidate::Nothing => break,
+                        // Else process the new choice
+                        c => {
+                            // Add the new choices to the ballot
+                            ballot.push(c);
+                            // Remove the current choice from the set of further possibilities
+                            choices = choices
+                                .iter()
+                                .filter(|o| &o.0 != c)
+                                .map(|o| (o.0.clone(), *o.1))
+                                .collect::<HashMap<_, _>>();
+                        }
+                    };
+                }
                 votes.push(ballot);
             }
         }
