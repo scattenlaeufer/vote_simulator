@@ -1,3 +1,4 @@
+use prettytable::{cell, format, Cell, Row, Table};
 use rand::prelude::*;
 use std::{
     collections::HashMap,
@@ -30,12 +31,14 @@ struct Vote<'a> {
     next_vote: Option<&'a Self>,
 }
 
-pub fn run(voters: usize, positions: usize, constituencies: usize) {
+pub fn run(voters: usize, _positions: usize, constituencies: usize) {
     // Those candidates stand for election
     let party_a = Candidate::Party("A".into());
     let party_b = Candidate::Party("B".into());
     let party_c = Candidate::Party("C".into());
     let indy_z = Candidate::Independent("Z".into());
+
+    let party_vec = vec![&party_a, &party_b, &party_c, &indy_z];
 
     // Define the likeliness of a candidate to be elected and the preferred
     // other candidates
@@ -115,7 +118,7 @@ pub fn run(voters: usize, positions: usize, constituencies: usize) {
                 .unwrap()
                 .0;
             match primary_choice.candidate {
-                &Candidate::Nothing => (),
+                Candidate::Nothing => (),
                 _ => {
                     let mut ballot = Vec::new();
                     let mut choices = primary_choice.preferences.clone();
@@ -125,7 +128,6 @@ pub fn run(voters: usize, positions: usize, constituencies: usize) {
                         // Make a choice
                         match &choices
                             .iter()
-                            .map(|c| c)
                             .collect::<Vec<_>>()
                             .choose_weighted(&mut rng, |i| i.1)
                             .unwrap()
@@ -141,7 +143,7 @@ pub fn run(voters: usize, positions: usize, constituencies: usize) {
                                 choices = choices
                                     .iter()
                                     .filter(|o| &o.0 != c)
-                                    .map(|o| (o.0.clone(), *o.1))
+                                    .map(|o| (<&Candidate>::clone(o.0), *o.1))
                                     .collect::<HashMap<_, _>>();
                             }
                         };
@@ -153,6 +155,15 @@ pub fn run(voters: usize, positions: usize, constituencies: usize) {
         election_results.push(votes);
     }
 
+    let mut primary_vote_table = Table::new();
+    primary_vote_table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
+    primary_vote_table.set_titles(Row::new(
+        party_vec
+            .iter()
+            .map(|p| Cell::new(&format!("{:?}", p)))
+            .collect::<Vec<_>>(),
+    ));
+
     for votes in election_results.iter() {
         let primary_votes = votes.iter().map(|i| i[0]).collect::<Vec<_>>();
 
@@ -162,10 +173,22 @@ pub fn run(voters: usize, positions: usize, constituencies: usize) {
                 None => (),
                 Some(c) => {
                     vote_count.insert(v, c + 1);
-                    ()
                 }
             };
         }
-        println!("{:#?}", vote_count);
+        primary_vote_table.add_row(Row::new(
+            party_vec
+                .iter()
+                .map(|p| {
+                    cell!(match vote_count.get(p) {
+                        Some(r) => format!("{}", r),
+                        None => "0".into(),
+                    })
+                })
+                .collect::<Vec<_>>(),
+        ));
     }
+
+    println!("Result of the primary votes:\n");
+    primary_vote_table.printstd();
 }
