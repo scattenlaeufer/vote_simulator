@@ -30,7 +30,7 @@ struct Vote<'a> {
     next_vote: Option<&'a Self>,
 }
 
-pub fn run() {
+pub fn run(voters: usize) {
     // Those candidates stand for election
     let party_a = Candidate::Party("A".into());
     let party_b = Candidate::Party("B".into());
@@ -101,7 +101,7 @@ pub fn run() {
     let mut votes = Vec::new();
 
     // Do the actual voting
-    for _ in 0..1_000_000 {
+    for _ in 0..voters {
         // Select the primary vote
         let primary_choice = choices_a_vec
             .iter()
